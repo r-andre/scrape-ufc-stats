@@ -222,6 +222,8 @@ conn = sqlite3.connect('ufc.db')
 df.to_sql('RAW', conn, index=False, if_exists='append')
 conn.close()
 
+log("Finished")
+
 # Code for scraping individual round data
 '''
         try:
