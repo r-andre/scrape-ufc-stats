@@ -27,7 +27,7 @@ log("Transforming data")
 
 # Building temporary table for data cleaning and wrangling:
 tmp = RAW.loc[:, ('Event'
-    , 'Weightclass'
+    , 'Bout'
     , 'Fight'
     , 'Winner'
     , 'Method'
@@ -38,16 +38,17 @@ tmp = RAW.loc[:, ('Event'
     , 'Details'
     , 'Corner'
     , 'Result'
+    , 'Scoring'
     , 'Fighter')].fillna(pd.NA)
 
 # Categorizing weight classes:
-tmp = tmp.rename(columns={'Weightclass' : 'Info'})
+tmp = tmp.rename(columns={'Bout' : 'Info'})
 tmp.loc[tmp['Info'].str.contains("Open Weight")
     , 'WeightClass'] = "Open Weight"
-tmp.loc[tmp['Info'].str.contains("Super Heavyweight")
-    , 'WeightClass'] = "Super Heavyweight"
 tmp.loc[tmp['Info'].str.contains("Heavyweight")
     , 'WeightClass'] = "Heavyweight"   
+tmp.loc[tmp['Info'].str.contains("Super Heavyweight")
+    , 'WeightClass'] = "Super Heavyweight"
 tmp.loc[tmp['Info'].str.contains("Light Heavyweight")
     , 'WeightClass'] = "Light Heavyweight"
 tmp.loc[tmp['Info'].str.contains("Middleweight")
@@ -80,7 +81,7 @@ tmp.loc[tmp['Info'].str.contains("Title"), 'TitleBout'] = True
 tmp['TitleBout'] = tmp['TitleBout'].fillna(False)
 
 # Adding knockdowns:
-tmp['KD'] = RAW['KD'].astype('Int64')
+tmp['KD'] = RAW['KD']
 
 # Adding strikes:
 sigstr = RAW['Sig. str.'].str.split(" of ")

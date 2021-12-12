@@ -29,7 +29,7 @@ event_locations = {} # stores location of event
 
 log("Loading list of fights")
 
-for event in list(event_links.keys())[:3]: # event_links.keys(): # 
+for event in event_links.keys(): # list(event_links.keys())[:3]: # 
     # For every event, get the links to each fight page:
     log("Loading " + event)
     page = requests.get(event_links[event])
@@ -90,7 +90,8 @@ for event in event_fights.keys():
                     , 'Referee'
                     , 'Details'
                     , 'Corner'
-                    , 'Result']
+                    , 'Result'
+                    , 'Scoring']
                 + columns
                 )
 
@@ -141,7 +142,7 @@ for event in event_fights.keys():
                 .replace("\n", " ")\
                 .replace("  ", "")\
                 .replace(".", ", ")\
-                .replace(" - ", "-").strip() # detailled method of winning
+                .replace(" - ", "-").strip().strip(",") # detailled method of winning
 
         # Trying to scrape fight data (not all fights have stats posted!):
         try:
@@ -166,66 +167,7 @@ for event in event_fights.keys():
             red_total = []
             blue_total = []
 
-        # appending data to list of lists
-        table.append(
-            [event
-                , event_dates[event]
-                , event_locations[event]
-                , weightclass
-                , vs
-                , winner
-                , method
-                , round
-                , time
-                , format
-                , referee
-                , details
-                , 'Red'
-                , red_result]
-            + red_total
-            )
-        table.append(
-            [event
-                , event_dates[event]
-                , event_locations[event]
-                , weightclass
-                , vs
-                , winner
-                , method
-                , round
-                , time
-                , format
-                , referee
-                , details
-                , 'Blue'
-                , blue_result]
-            + blue_total
-            )
-
-log("Finished scraping fights")
-
-# Converting data in list of lists to DataFrame:
-df = pd.DataFrame(table[1:], columns=table[0])
-df = df.drop(['Sig. str', 'Sig. str. %.1'], axis=1)
-df['Timestamp'] = pd.Timestamp.now().strftime('%Y-%m-%d %X')
-df['Timestamp'] = pd.to_datetime(df['Timestamp'])
-
-log("Writing scraped data to database")
-
-# Saving scraped data to .csv
-# df.to_csv('raw.csv', sep='\t', index=False)
-
-# df = pd.read_csv('raw.csv', sep='\t')
-
-# Loading scraped data into database
-conn = sqlite3.connect('ufc.db')
-df.to_sql('RAW', conn, index=False, if_exists='append')
-conn.close()
-
-log("Finished")
-
-# Code for scraping individual round data
-'''
+        # Scrape individual rounds (if applicable):
         try:
             red_one = (
             [c.text.strip() for c in soup
@@ -272,15 +214,16 @@ log("Finished")
                                     .findAll('p', {'class' : 'b-fight-details__table-text'})][74:90:2]
                                 )
                         except:
-                            pass
+                            red_five = False
                     except:
-                        pass
+                        red_four = False
                 except:
-                    pass
+                    red_three = False
             except:
-                pass
+                red_two = False
         except:
-            pass
+            red_one = False
+
         try:
             blue_one = (
             [c.text.strip() for c in soup
@@ -327,14 +270,74 @@ log("Finished")
                                     .findAll('p', {'class' : 'b-fight-details__table-text'})][75:90:2]
                                 )
                         except:
-                            pass
+                            blue_five = False
                     except:
-                        pass
+                        blue_four = False
                 except:
-                    pass
+                    blue_three = False
             except:
-                pass
+                blue_two = False
         except:
-            pass
-'''
+            blue_one = False
+
+        # Appending data to list of lists:
+        rows =  [
+            event
+            , event_dates[event]
+            , event_locations[event]
+            , weightclass
+            , vs
+            , winner
+            , method
+            , round
+            , time
+            , format
+            , referee
+            , details
+            ]
+        table.append(rows + ['Red', red_result, 'Total'] + red_total)
+        table.append(rows + ['Blue', blue_result, 'Total'] + blue_total)
+        if red_one:
+            table.append(rows + ['Red', red_result, 'Round 1'] + red_one)
+        if blue_one:
+            table.append(rows + ['Blue', blue_result, 'Round 1'] + blue_one)
+        if red_two:
+            table.append(rows + ['Red', red_result, 'Round 2'] + red_two)
+        if blue_two:
+            table.append(rows + ['Blue', blue_result, 'Round 2'] + blue_two)
+        if red_three:
+            table.append(rows + ['Red', red_result, 'Round 3'] + red_three)
+        if blue_three:
+            table.append(rows + ['Blue', blue_result, 'Round 3'] + blue_three)
+        if red_four:
+            table.append(rows + ['Red', red_result, 'Round 4'] + red_four)
+        if blue_four:
+            table.append(rows + ['Blue', blue_result, 'Round 4'] + blue_four)
+        if red_five:
+            table.append(rows + ['Red', red_result, 'Round 5'] + red_five)
+        if blue_five:
+            table.append(rows + ['Blue', blue_result, 'Round 5'] + blue_five)
+
+
+log("Finished scraping fights")
+
+# Converting data in list of lists to DataFrame:
+df = pd.DataFrame(table[1:], columns=table[0])
+df = df.drop(['Sig. str'], axis=1)
+df = df.loc[:,~df.columns.duplicated()]
+df['Timestamp'] = pd.Timestamp.now().strftime('%Y-%m-%d %X')
+df['Timestamp'] = pd.to_datetime(df['Timestamp'])
+
+log("Writing scraped data to database")
+
+# Saving scraped data to .csv
+df.to_csv('raw.csv', sep='\t', index=False)
+# df = pd.read_csv('raw.csv', sep='\t')
+
+# Loading scraped data into database
+conn = sqlite3.connect('ufc.db')
+df.to_sql('RAW', conn, index=False, if_exists='append')
+conn.close()
+
+log("Finished")
 
